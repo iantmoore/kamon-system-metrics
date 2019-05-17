@@ -14,17 +14,35 @@
  * =========================================================================================
  */
 
-val kamonCore         = "io.kamon"                  %%  "kamon-core"            % "1.1.3"
-val kamonTestkit      = "io.kamon"                  %%  "kamon-testkit"         % "1.1.3"
-val sigarLoader       = "io.kamon"                  %   "sigar-loader"          % "1.6.5-rev003"
-val logback           = "ch.qos.logback"            %   "logback-classic"       % "1.0.13"
-val slf4jJul          = "org.slf4j"                 %   "jul-to-slf4j"          % "1.7.7"
+import sbt.Keys._
+
+
 
 name := "kamon-system-metrics"
 
-libraryDependencies ++=
-  compileScope(kamonCore, sigarLoader) ++
-  testScope(scalatest, kamonTestkit, logback, slf4jJul)
+scalaVersion := "2.12.8"
 
-resolvers += Resolver.bintrayRepo("kamon-io", "releases")
-resolvers += Resolver.bintrayRepo("kamon-io", "snapshots")
+
+//val kamonCore         = "io.kamon" %%  "kamon-core"            % "1.1.3"
+//val kamonTestkit      = "io.kamon"                  %%  "kamon-testkit"         % "1.1.3"
+//val sigarLoader       = "io.kamon"                  %   "sigar-loader"          % "1.6.5-rev003"
+//val logback           = "ch.qos.logback"            %   "logback-classic"       % "1.0.13"
+//val slf4jJul          = "org.slf4j"                 %   "jul-to-slf4j"          % "1.7.7"
+val scalaTestVersion = "3.0.5"
+
+//val scalatest = "org.scalatest" %% "scalatest" % scalaTestVersion
+
+libraryDependencies ++= Seq (
+  "io.kamon" %%  "kamon-core"            % "1.1.3",
+  "io.kamon"                  %%  "kamon-testkit"         % "1.1.1" % "test",
+"io.kamon"                  %   "sigar-loader"          % "1.6.5-rev003",
+"ch.qos.logback"            %   "logback-classic"       % "1.0.13" % "test", 
+"org.slf4j"                 %   "jul-to-slf4j"          % "1.7.7" % "test",
+"org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+)
+  
+//compileScope(kamonCore, sigarLoader) ++
+//  testScope(scalatest, kamonTestkit, logback, slf4jJul)
+
+//resolvers += Resolver.bintrayRepo("kamon-io", "releases")
+//resolvers += Resolver.bintrayRepo("kamon-io", "snapshots")

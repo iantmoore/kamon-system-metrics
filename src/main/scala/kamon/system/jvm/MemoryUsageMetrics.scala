@@ -43,9 +43,9 @@ object MemoryUsageMetrics extends MetricBuilder("jvm.memory") with JmxMetricBuil
       memoryUsageWithNames.foreach {
         case MemoryUsageWithMetricName(name, beanFun) ⇒
           val memory = memoryMetrics.forSegment(name)
-          memory.memoryUsed.record(beanFun().getUsed)
-          memory.memoryCommitted.record(beanFun().getCommitted)
-          memory.memoryMax.record({
+          memory.memoryUsed.set(beanFun().getUsed)
+          memory.memoryCommitted.set(beanFun().getCommitted)
+          memory.memoryMax.set({
             val max = beanFun().getMax
             // .getMax can return -1 if the max is not defined.
             if (max >= 0) max
@@ -82,7 +82,7 @@ object MemoryUsageMetrics extends MetricBuilder("jvm.memory") with JmxMetricBuil
 }
 
 final case class MemoryMetrics(metricPrefix:String) {
-  val memoryUsageMetric = Kamon.histogram(metricPrefix, MeasurementUnit.information.bytes)
+  val memoryUsageMetric = Kamon.gauge(metricPrefix, MeasurementUnit.information.bytes)
 
   def forSegment(segment: String): MemoryMetrics = {
     val memoryTags = Map("segment" -> segment)
@@ -94,7 +94,7 @@ final case class MemoryMetrics(metricPrefix:String) {
     )
   }
 
-  case class MemoryMetrics(tags: Map[String, String], memoryUsed: Histogram, memoryCommitted: Histogram, memoryMax: Histogram)
+  case class MemoryMetrics(tags: Map[String, String], memoryUsed: Gauge, memoryCommitted: Gauge, memoryMax: Gauge)
 }
 
 final case class BufferPoolMetrics(metricPrefix:String) {

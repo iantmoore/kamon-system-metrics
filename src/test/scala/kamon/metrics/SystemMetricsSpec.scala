@@ -17,6 +17,7 @@ package kamon.metrics
 
 import java.lang.management.ManagementFactory
 
+import com.typesafe.config.{ConfigValue, ConfigValueFactory}
 import kamon.Kamon
 import kamon.system.SystemMetrics
 import kamon.system.SystemMetrics.isLinux
@@ -34,6 +35,7 @@ class SystemMetricsSpec extends WordSpecLike
   with Eventually
   with RedirectLogging {
 
+  val reporter = new TestReporter()
 
   "the Kamon System Metrics module" should {
     "record user, system, wait, idle, stolen and combined CPU metrics" in {
@@ -65,12 +67,22 @@ class SystemMetricsSpec extends WordSpecLike
 
       //Heap
       memoryMeasures.foreach {
-        measureTag => Kamon.histogram("jvm.memory").refine(componentTag, measureTag, "segment" -> "heap").distribution().count should be > 0L
+        measureTag => {
+          val heapUsed = reporter.readGauge(
+            "jvm.memory",
+            Map(componentTag, measureTag, "segment" -> "heap"))
+
+          heapUsed should be > 0L
+        }
       }
 
       //Non Heap
-      memoryMeasures.foreach { measureTag =>
-        Kamon.histogram("jvm.memory").refine(componentTag, measureTag, "segment" -> "non-heap").distribution().count should be > 0L
+      memoryMeasures.foreach {
+        measureTag => {
+          reporter.readGauge(
+            "jvm.memory",
+            Map(componentTag, measureTag, "segment" -> "non-heap"))
+        }
       }
 
       //Memory Pool
@@ -106,15 +118,18 @@ class SystemMetricsSpec extends WordSpecLike
 
 
     "record correctly updatable values for heap metrics" in {
+      def readHeapUsed = reporter.readGauge(
+        "jvm.memory",
+        Map("component" -> "system-metrics",
+          "measure" -> "used", "segment" -> "heap"))
+
+      val heapUsedBefore = readHeapUsed
+
       val data = new Array[Byte](20 * 1024 * 1024) // 20 Mb of data
 
       eventually(timeout(6 seconds)) {
-        val heapUsed = Kamon.histogram("jvm.memory")
-          .refine("component" -> "system-metrics", "measure" -> "used", "segment" -> "heap")
-          .distribution(false)
-
-        heapUsed.max should be > heapUsed.min
-        data.length should be > 0 // Just for data usage
+        val heapUsedAfter = readHeapUsed
+        heapUsedAfter should be > heapUsedBefore
       }
     }
 
@@ -198,6 +213,13 @@ class SystemMetricsSpec extends WordSpecLike
     name.replaceAll("""[^\w]""", "-").toLowerCase
 
   override protected def beforeAll(): Unit = {
+    val defaultConfig = Kamon.config()
+    val config = defaultConfig.withValue(
+      "kamon.metric.tick-interval",
+      ConfigValueFactory.fromAnyRef("1 second"))
+    Kamon.reconfigure(config)
+
+    Kamon.addReporter(reporter)
     SystemMetrics.startCollecting()
     System.gc()
     Thread.sleep(2000) // Give some room to the recorders to store some values.
